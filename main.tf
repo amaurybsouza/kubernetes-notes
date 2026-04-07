@@ -1,31 +1,58 @@
 terraform {
-    required_version = ">= 1.5.0"
-
-    required_providers {
-        aws = {
-            source  = "hashicorp/aws"
-            version = "~> 5.0"
-        }
-        random = {
-            source  = "hashicorp/random"
-            version = "~> 3.6"
-        }
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "6.0.0-beta2"
     }
+  }
 }
 
 provider "aws" {
-    region = "us-east-1"
+  # Configuration options
+  region = "sa-east-1"
+  shared_credentials_files = ["/home/amaurybsouza/.aws/credentials"]
+  profile                  = "default"
 }
 
-resource "random_id" "suffix" {
-    byte_length = 4
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
 }
 
-resource "aws_s3_bucket" "this" {
-    bucket = "my-tf-bucket-${random_id.suffix.hex}"
+resource "aws_instance" "web" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t3.micro"
 
-    tags = {
-        Name        = "my-tf-bucket"
-        Environment = "dev"
-    }
+  tags = {
+    Name = "HelloWorld"
+  }
+}
+
+resource "aws_s3_bucket" "example" {
+  bucket = "my-tf-test-bucket"
+
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "main"
+  }
 }
